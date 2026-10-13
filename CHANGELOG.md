@@ -17,3 +17,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The catalog interface over the Deezer public API: track, album and artist
   search, entity lookups, artist album and top-track listings, ISRC resolution,
   and a health probe, plus the manifest that declares them.
+- A CI workflow that formats, lints, tests, builds, checks and packs the
+  plugin, and uploads the archive.
