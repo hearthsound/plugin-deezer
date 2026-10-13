@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "id": "app.hearthsound.deezer",
   "name": "Deezer catalog",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Search and browse the Deezer public API as a catalog provider, without an account or an API key.",
   "authors": ["Hearthsound contributors"],
   "license": "MIT OR Apache-2.0",
