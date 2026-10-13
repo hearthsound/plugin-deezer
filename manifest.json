@@ -1,0 +1,42 @@
+{
+  "manifestVersion": 1,
+  "id": "app.hearthsound.deezer",
+  "name": "Deezer catalog",
+  "version": "0.1.0",
+  "description": "Search and browse the Deezer public API as a catalog provider, without an account or an API key.",
+  "authors": ["Hearthsound contributors"],
+  "license": "MIT OR Apache-2.0",
+  "homepage": "https://github.com/hearthsound/plugin-deezer",
+  "api": "hearthsound:plugin@0.1.0",
+  "provides": ["catalog"],
+  "permissions": {
+    "http": {
+      "hosts": ["api.deezer.com", "*.dzcdn.net", "$config:baseUrl"],
+      "rateLimit": { "perSecond": 10, "burst": 10 }
+    }
+  },
+  "config": {
+    "server": {
+      "schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "baseUrl": {
+            "type": "string",
+            "format": "uri",
+            "title": "Deezer API base URL",
+            "description": "Base URL of the Deezer API. Point it at a mirror or a test double to keep traffic off Deezer.",
+            "default": "https://api.deezer.com"
+          }
+        }
+      },
+      "uiSchema": {
+        "type": "VerticalLayout",
+        "elements": [{ "type": "Control", "scope": "#/properties/baseUrl" }]
+      }
+    },
+    "user": null
+  },
+  "resources": { "memoryMb": 64, "callTimeoutMs": 15000, "maxInstances": 2 },
+  "catalog": { "imageCachePolicy": "no-store" }
+}

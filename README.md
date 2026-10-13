@@ -78,6 +78,14 @@ Deezer publishes.
   lets the server namespace them per provider instance. The canonical
   identifiers Deezer does know (a track's ISRC, an album's UPC) are reported as
   `isrc` and `upc` id pairs.
+- An album's track list is read from `/album/{id}/tracks`, not from the album
+  response: the embedded list carries no ISRCs, track numbers or disc numbers
+  and stops at 25 entries, while the dedicated listing carries all three and
+  pages 100 at a time.
+- An artist's album listing carries no album artist, so the album references it
+  returns have no artist credits; every other response reports the artist.
+- ISRCs are normalized before a lookup (hyphens and spaces removed, upper-cased)
+  because Deezer answers a hyphenated code with "no data".
 - Deezer answers errors with HTTP status 200 and an `error` object. The plugin
   translates "no data" into a not-found, a quota error into rate-limited, and
   everything else into an unavailable provider.
