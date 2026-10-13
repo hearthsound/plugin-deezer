@@ -1,0 +1,32 @@
+{
+  "id": 6575789,
+  "title": "Random Access Memories",
+  "upc": "886443927087",
+  "release_date": "2013-05-17",
+  "record_type": "album",
+  "nb_tracks": 13,
+  "explicit_lyrics": false,
+  "genres": {
+    "data": [
+      {
+        "id": 113,
+        "name": "Dance",
+        "type": "genre"
+      },
+      {
+        "id": 132,
+        "name": "Pop",
+        "type": "genre"
+      }
+    ]
+  },
+  "artist": {
+    "id": 27,
+    "name": "Daft Punk",
+    "type": "artist"
+  },
+  "cover_small": "https://cdn-images.dzcdn.net/images/cover/311bba0fc112d15f72c8b5a65f0456c1/56x56-000000-80-0-0.jpg",
+  "cover_medium": "https://cdn-images.dzcdn.net/images/cover/311bba0fc112d15f72c8b5a65f0456c1/250x250-000000-80-0-0.jpg",
+  "cover_big": "https://cdn-images.dzcdn.net/images/cover/311bba0fc112d15f72c8b5a65f0456c1/500x500-000000-80-0-0.jpg",
+  "cover_xl": "https://cdn-images.dzcdn.net/images/cover/311bba0fc112d15f72c8b5a65f0456c1/1000x1000-000000-80-0-0.jpg"
+}

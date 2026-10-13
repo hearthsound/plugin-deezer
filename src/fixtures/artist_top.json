@@ -1,0 +1,29 @@
+{
+  "data": [
+    {
+      "id": 67238732,
+      "title": "Instant Crush (feat. Julian Casablancas)",
+      "title_short": "Instant Crush",
+      "title_version": "(feat. Julian Casablancas)",
+      "duration": 337,
+      "explicit_lyrics": false,
+      "type": "track",
+      "artist": {
+        "id": 27,
+        "name": "Daft Punk",
+        "type": "artist"
+      },
+      "album": {
+        "id": 6575789,
+        "title": "Random Access Memories",
+        "cover_small": "https://cdn-images.dzcdn.net/images/cover/311bba0fc112d15f72c8b5a65f0456c1/56x56-000000-80-0-0.jpg",
+        "cover_medium": "https://cdn-images.dzcdn.net/images/cover/311bba0fc112d15f72c8b5a65f0456c1/250x250-000000-80-0-0.jpg",
+        "cover_big": "https://cdn-images.dzcdn.net/images/cover/311bba0fc112d15f72c8b5a65f0456c1/500x500-000000-80-0-0.jpg",
+        "cover_xl": "https://cdn-images.dzcdn.net/images/cover/311bba0fc112d15f72c8b5a65f0456c1/1000x1000-000000-80-0-0.jpg",
+        "type": "album"
+      }
+    }
+  ],
+  "total": 100,
+  "next": "https://api.deezer.com/artist/27/top?limit=2&index=2"
+}

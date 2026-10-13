@@ -1,0 +1,40 @@
+{
+  "data": [
+    {
+      "id": 67238728,
+      "title": "Give Life Back to Music",
+      "title_short": "Give Life Back to Music",
+      "title_version": "",
+      "isrc": "USQX91300101",
+      "duration": 274,
+      "track_position": 1,
+      "disk_number": 1,
+      "explicit_lyrics": false,
+      "type": "track",
+      "artist": {
+        "id": 27,
+        "name": "Daft Punk",
+        "type": "artist"
+      }
+    },
+    {
+      "id": 67238729,
+      "title": "The Game of Love",
+      "title_short": "The Game of Love",
+      "title_version": "",
+      "isrc": "USQX91300102",
+      "duration": 321,
+      "track_position": 2,
+      "disk_number": 1,
+      "explicit_lyrics": false,
+      "type": "track",
+      "artist": {
+        "id": 27,
+        "name": "Daft Punk",
+        "type": "artist"
+      }
+    }
+  ],
+  "total": 13,
+  "next": "https://api.deezer.com/album/6575789/tracks?limit=2&index=2"
+}
