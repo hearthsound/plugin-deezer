@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-13
+
 ### Added
 
 - The repository scaffolding: the crate manifest, the toolchain pin, the dual
@@ -19,3 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and a health probe, plus the manifest that declares them.
 - A CI workflow that formats, lints, tests, builds, checks and packs the
   plugin, and uploads the archive.
+
+[Unreleased]: https://github.com/hearthsound/plugin-deezer/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/hearthsound/plugin-deezer/releases/tag/v0.1.0
