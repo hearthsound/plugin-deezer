@@ -2,14 +2,29 @@
 //!
 //! Deezer ids are numeric and the entity's own id is the Deezer id as a
 //! string; the server namespaces that id per provider instance, so the plugin
-//! never invents a namespace for it. The canonical identifiers Deezer does
-//! know - a track's ISRC and an album's UPC - become `isrc` and `upc` id pairs.
+//! never invents a namespace for the entity. The canonical identifiers Deezer
+//! does know - a track's ISRC and an album's UPC - become `isrc` and `upc` id
+//! pairs.
+//!
+//! A credited artist is different: the credit is only a name unless the plugin
+//! says which Deezer artist it is, so every credit carries the artist's Deezer
+//! id under the `ARTIST_NAMESPACE` that is this plugin's own. The server
+//! treats the first identifier of a credit whose namespace is not one of the
+//! canonical ones as the id the issuing instance resolves.
 //!
 //! Every function here is pure, so its unit tests run on the host target.
 
 use hearthsound_plugin::types::{Album, AlbumRef, Artist, ArtistCredit, IdPair, Image, Track};
 
 use crate::deezer;
+
+/// The namespace of the Deezer artist ids an artist credit carries.
+///
+/// It is deliberately not one of the canonical namespaces the server knows
+/// (`isrc`, `upc`, `mb-recording`, `mb-release`, `mb-release-group`,
+/// `mb-artist`): a credit's first identifier outside that set is the provider
+/// id the server uses to resolve the credited artist.
+const ARTIST_NAMESPACE: &str = "deezer";
 
 /// Width and height reported for a `cover_small` or `picture_small` URL.
 const SIZE_SMALL: u32 = 56;
@@ -25,8 +40,9 @@ const SIZE_XL: u32 = 1000;
 
 /// Converts a Deezer artist into an artist credit.
 ///
-/// The credit carries no id pairs: Deezer artist ids are provider-local, so the
-/// server namespaces them itself when it records the entity.
+/// The credit carries the artist's Deezer id under the plugin's own namespace,
+/// so the server can resolve the credited artist against this instance instead
+/// of showing a name that points at nothing.
 ///
 /// # Parameters
 ///
@@ -34,11 +50,11 @@ const SIZE_XL: u32 = 1000;
 ///
 /// # Returns
 ///
-/// The artist's name, credited without ids.
+/// The artist's name, credited with its Deezer artist id.
 pub fn artist_credit(source: &deezer::Artist) -> ArtistCredit {
     ArtistCredit {
         name: source.name.clone(),
-        ids: Vec::new(),
+        ids: ids(ARTIST_NAMESPACE, Some(source.id.to_string())),
     }
 }
 
@@ -382,7 +398,7 @@ mod tests {
         assert_eq!(track.title, "Instant Crush (feat. Julian Casablancas)");
         assert_eq!(track.artists.len(), 1);
         assert_eq!(track.artists[0].name, "Daft Punk");
-        assert!(track.artists[0].ids.is_empty());
+        assert_eq!(id_pairs(&track.artists[0].ids), vec![("deezer", "27")]);
         assert_eq!(track.duration_ms, Some(337_000));
         assert_eq!(track.isrc.as_deref(), Some("USQX91300105"));
         assert_eq!(track.explicit, Some(false));
@@ -409,12 +425,16 @@ mod tests {
         assert_eq!(album.upc.as_deref(), Some("886443927087"));
         assert_eq!(album.genres, vec!["Dance".to_string(), "Pop".to_string()]);
         assert_eq!(id_pairs(&album.ids), vec![("upc", "886443927087")]);
+        assert_eq!(album.artists.len(), 1);
+        assert_eq!(id_pairs(&album.artists[0].ids), vec![("deezer", "27")]);
         assert_eq!(album.tracks.len(), 2);
 
         let first = &album.tracks[0];
         assert_eq!(first.track_number, Some(1));
         assert_eq!(first.disc_number, Some(1));
         assert_eq!(first.duration_ms, Some(274_000));
+        // The track listing carries the artist, so the credit names its Deezer id.
+        assert_eq!(id_pairs(&first.artists[0].ids), vec![("deezer", "27")]);
         // The track listing has no album object, so the album comes from the parent.
         let referenced = first.album.as_ref().unwrap();
         assert_eq!(referenced.id, "6575789");
@@ -431,6 +451,25 @@ mod tests {
         assert!(artist.ids.is_empty());
         assert_eq!(artist.images.len(), 4);
         assert_eq!(artist.images[1].width, Some(250));
+    }
+
+    #[test]
+    fn credits_carry_the_deezer_artist_id() {
+        let source = artist_source();
+        let credit = artist_credit(&source);
+
+        assert_eq!(credit.name, "Daft Punk");
+        assert_eq!(id_pairs(&credit.ids), vec![("deezer", "27")]);
+        assert!(
+            !["isrc", "upc", "mb-artist"].contains(&credit.ids[0].namespace.as_str()),
+            "the artist id must not claim a canonical namespace"
+        );
+    }
+
+    #[test]
+    fn a_record_without_an_artist_credits_nobody() {
+        assert!(artist_credits(None).is_empty());
+        assert_eq!(artist_credits(Some(&artist_source())).len(), 1);
     }
 
     #[test]

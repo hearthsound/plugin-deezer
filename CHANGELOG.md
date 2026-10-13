@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The Deezer artist id on every artist credit, so the server resolves a
+  credited artist against this instance instead of showing a name that points
+  nowhere.
+
 ## [0.1.0] - 2026-10-13
 
 ### Added
