@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The artwork interface: album covers and artist portraits, read from the
+  subject's own id, from an album's UPC, or from an exact-match Deezer search.
+  An artist without a portrait is answered with nothing rather than with
+  Deezer's placeholder picture.
+
 ### Changed
 
 - The plugin builds against the 0.2.0 plugin API (`hearthsound:plugin@0.2.0`).

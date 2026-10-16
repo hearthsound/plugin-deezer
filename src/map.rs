@@ -126,6 +126,33 @@ pub fn picture_images(source: &deezer::Artist) -> Vec<Image> {
     ])
 }
 
+/// Returns whether a picture URL is one of Deezer's placeholders.
+///
+/// An artist without a portrait still gets picture URLs, with the hash segment
+/// of the path left empty (`.../images/artist//56x56-000000-80-0-0.jpg`); that
+/// URL serves a flat black square rather than a portrait. A URL with an empty
+/// path segment is such a placeholder, a URL without one is a real picture.
+///
+/// # Parameters
+///
+/// - `url`: the picture URL as the API reported it.
+///
+/// # Returns
+///
+/// `true` when the URL carries an empty segment in its path.
+///
+/// # Example
+///
+/// ```text
+/// is_placeholder_picture("https://cdn-images.dzcdn.net/images/artist//56x56.jpg")   -> true
+/// is_placeholder_picture("https://cdn-images.dzcdn.net/images/artist/638e69/56x56.jpg") -> false
+/// ```
+pub fn is_placeholder_picture(url: &str) -> bool {
+    let path = url.split_once("://").map_or(url, |(_, rest)| rest);
+
+    path.contains("//")
+}
+
 /// Converts a Deezer album into a catalog album reference.
 ///
 /// # Parameters
@@ -451,6 +478,16 @@ mod tests {
         assert!(artist.ids.is_empty());
         assert_eq!(artist.images.len(), 4);
         assert_eq!(artist.images[1].width, Some(250));
+    }
+
+    #[test]
+    fn spots_placeholder_pictures() {
+        assert!(is_placeholder_picture(
+            "https://cdn-images.dzcdn.net/images/artist//56x56-000000-80-0-0.jpg"
+        ));
+        assert!(!is_placeholder_picture(
+            "https://cdn-images.dzcdn.net/images/artist/638e69b9caaf9f9f3f8826febea7b543/56x56-000000-80-0-0.jpg"
+        ));
     }
 
     #[test]

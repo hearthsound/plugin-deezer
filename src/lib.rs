@@ -3,15 +3,16 @@
 //!
 //! The plugin needs no account and no key, because every endpoint it uses is
 //! part of Deezer's public API. It implements `lifecycle` (configuration
-//! validation and a health probe) and `catalog` (search, entity lookups,
-//! artist listings and ISRC resolution), and nothing else.
+//! validation and a health probe), `catalog` (search, entity lookups, artist
+//! listings and ISRC resolution) and `artwork` (album covers and artist
+//! portraits for the server's artwork layer).
 //!
 //! The only instance setting is `baseUrl`, which defaults to the public API and
 //! can be pointed at a mirror or a test double.
 //!
 //! The pure logic sits in public modules ([`url`], [`deezer`], [`map`]); the
-//! binding-coupled glue that drives it - the HTTP transport and the catalog
-//! operations - stays private.
+//! binding-coupled glue that drives it - the HTTP transport and the catalog and
+//! artwork operations - stays private.
 //!
 //! # Tests
 //!
@@ -29,13 +30,17 @@
 #![forbid(unsafe_code)]
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used))]
 
-use hearthsound_plugin::catalog_provider::exports::hearthsound::plugin::catalog::{
+use hearthsound_plugin::catalog_artwork_provider::exports::hearthsound::plugin::artwork::{
+    ArtworkSubject, Guest as ArtworkGuest,
+};
+use hearthsound_plugin::catalog_artwork_provider::exports::hearthsound::plugin::catalog::{
     Guest as CatalogGuest, SearchQuery, SearchResults,
 };
-use hearthsound_plugin::catalog_provider::exports::hearthsound::plugin::lifecycle::Guest as LifecycleGuest;
-use hearthsound_plugin::types::{Album, AlbumRef, Artist, EntityKind, ProviderError, Track};
+use hearthsound_plugin::catalog_artwork_provider::exports::hearthsound::plugin::lifecycle::Guest as LifecycleGuest;
+use hearthsound_plugin::types::{Album, AlbumRef, Artist, EntityKind, Image, ProviderError, Track};
 
 mod api;
+mod artwork;
 mod catalog;
 pub mod deezer;
 pub mod map;
@@ -208,7 +213,27 @@ impl CatalogGuest for DeezerCatalog {
     }
 }
 
-hearthsound_plugin::export_catalog_provider!(DeezerCatalog);
+/// Implements the artwork interface.
+impl ArtworkGuest for DeezerCatalog {
+    fn find_artwork(subject: ArtworkSubject) -> Result<Vec<Image>, ProviderError> {
+        hearthsound_plugin::debug!(
+            "artwork for {:?} `{}` by {:?}",
+            subject.kind,
+            subject.title,
+            subject.artists
+        );
+
+        let images = artwork::find_artwork(&base_url()?, &subject)?;
+
+        if images.is_empty() {
+            hearthsound_plugin::debug!("no artwork for {:?} `{}`", subject.kind, subject.title);
+        }
+
+        Ok(images)
+    }
+}
+
+hearthsound_plugin::export_catalog_artwork_provider!(DeezerCatalog);
 
 #[cfg(test)]
 mod tests {

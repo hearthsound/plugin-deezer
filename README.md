@@ -2,9 +2,10 @@
 
 A [Hearthsound](https://github.com/hearthsound) catalog plugin backed by the
 [Deezer public API](https://developers.deezer.com/api). It compiles to a
-WebAssembly component that implements the `catalog` provider interface, so a
-Hearthsound server can search Deezer, browse Deezer tracks, albums and artists,
-and resolve ISRCs to tracks.
+WebAssembly component that implements the `catalog` and `artwork` provider
+interfaces, so a Hearthsound server can search Deezer, browse Deezer tracks,
+albums and artists, resolve ISRCs to tracks, and use Deezer covers and artist
+portraits for its artwork layer.
 
 The plugin needs no Deezer account and no API key: every endpoint it calls is
 part of the public, unauthenticated API.
@@ -86,6 +87,12 @@ Deezer publishes.
   returns have no artist credits; every other response reports the artist.
 - ISRCs are normalized before a lookup (hyphens and spaces removed, upper-cased)
   because Deezer answers a hyphenated code with "no data".
+- The artwork interface answers a subject from its own id when the server holds
+  one, otherwise from the album's UPC, otherwise from Deezer's advanced search;
+  a search result counts only when its title, and the artist it credits, are the
+  ones the subject names. An artist without a portrait is answered with nothing,
+  because Deezer's placeholder URLs serve a flat black square rather than a
+  picture.
 - Deezer answers errors with HTTP status 200 and an `error` object. The plugin
   translates "no data" into a not-found, a quota error into rate-limited, and
   everything else into an unavailable provider.
@@ -95,8 +102,9 @@ Deezer publishes.
 | Path | Contents |
 |---|---|
 | `Cargo.toml` | Crate metadata and the SDK dependency. |
-| `src/lib.rs` | The plugin: configuration, lifecycle and the catalog interface. |
+| `src/lib.rs` | The plugin: configuration, lifecycle and the catalog and artwork interfaces. |
 | `src/api.rs` | The HTTP transport and Deezer's error envelope. |
+| `src/artwork.rs` | The artwork interface: album covers and artist portraits. |
 | `src/catalog.rs` | One function per catalog operation, over the API endpoints. |
 | `src/deezer.rs` | Serde types for Deezer API responses. |
 | `src/map.rs` | Deezer records to catalog records. |

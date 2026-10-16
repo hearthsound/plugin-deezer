@@ -338,7 +338,7 @@ fn album_tracks(base_url: &str, id: &str) -> Result<Vec<deezer::Track>, Provider
 /// # Returns
 ///
 /// `<kind>/<encoded id>`.
-fn element_path(kind: &str, id: &str) -> String {
+pub(crate) fn element_path(kind: &str, id: &str) -> String {
     format!("{kind}/{}", url::encode_component(id))
 }
 
@@ -389,7 +389,7 @@ fn listing(kind: &str, id: &str, listing_name: &str) -> String {
 /// # Returns
 ///
 /// `<kind>?q=<encoded text>&limit=<limit>&index=<offset>`.
-fn search_path(kind: &str, text: &str, limit: u32, offset: u32) -> String {
+pub(crate) fn search_path(kind: &str, text: &str, limit: u32, offset: u32) -> String {
     format!(
         "{kind}?q={}&limit={limit}&index={offset}",
         url::encode_component(text)
