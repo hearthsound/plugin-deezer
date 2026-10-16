@@ -38,7 +38,8 @@ Then validate the manifest and the component:
 hsplugin check
 ```
 
-It prints `ok: app.hearthsound.deezer 0.1.0 (provides catalog)` on success.
+It prints `ok: app.hearthsound.deezer 0.2.0 (provides catalog, artwork)` on
+success.
 
 Finally, build the archive you install on a server:
 
@@ -46,7 +47,7 @@ Finally, build the archive you install on a server:
 hsplugin pack --out-dir dist
 ```
 
-`dist/app.hearthsound.deezer-0.1.0.hsplugin` contains the manifest and the
+`dist/app.hearthsound.deezer-0.2.0.hsplugin` contains the manifest and the
 component.
 
 ## Tests
