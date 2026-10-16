@@ -37,11 +37,52 @@ dependencies = [
 
 [[package]]
 name = "hearthsound-plugin"
-version = "0.1.0"
-source = "git+https://github.com/hearthsound/plugin-sdk?tag=v0.1.0#a8dc2271e182ec7124d5ad473755c87c9b0c8e7e"
+version = "0.2.0"
+source = "git+https://github.com/hearthsound/plugin-sdk?tag=v0.2.0#22cf4743e57e42799a1fc025d224683ea84a4d50"
 dependencies = [
+ "hearthsound-plugin-acquisition",
+ "hearthsound-plugin-artwork",
+ "hearthsound-plugin-bindings",
+ "hearthsound-plugin-catalog-artwork",
+ "hearthsound-plugin-metadata",
+ "hearthsound-plugin-metadata-artwork",
  "serde",
  "serde_json",
+ "wit-bindgen",
+]
+
+[[package]]
+name = "hearthsound-plugin-acquisition"
+version = "0.2.0"
+source = "git+https://github.com/hearthsound/plugin-sdk?tag=v0.2.0#22cf4743e57e42799a1fc025d224683ea84a4d50"
+dependencies = [
+ "hearthsound-plugin-bindings",
+ "wit-bindgen",
+]
+
+[[package]]
+name = "hearthsound-plugin-artwork"
+version = "0.2.0"
+source = "git+https://github.com/hearthsound/plugin-sdk?tag=v0.2.0#22cf4743e57e42799a1fc025d224683ea84a4d50"
+dependencies = [
+ "hearthsound-plugin-bindings",
+ "wit-bindgen",
+]
+
+[[package]]
+name = "hearthsound-plugin-bindings"
+version = "0.2.0"
+source = "git+https://github.com/hearthsound/plugin-sdk?tag=v0.2.0#22cf4743e57e42799a1fc025d224683ea84a4d50"
+dependencies = [
+ "wit-bindgen",
+]
+
+[[package]]
+name = "hearthsound-plugin-catalog-artwork"
+version = "0.2.0"
+source = "git+https://github.com/hearthsound/plugin-sdk?tag=v0.2.0#22cf4743e57e42799a1fc025d224683ea84a4d50"
+dependencies = [
+ "hearthsound-plugin-bindings",
  "wit-bindgen",
 ]
 
@@ -52,6 +93,24 @@ dependencies = [
  "hearthsound-plugin",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "hearthsound-plugin-metadata"
+version = "0.2.0"
+source = "git+https://github.com/hearthsound/plugin-sdk?tag=v0.2.0#22cf4743e57e42799a1fc025d224683ea84a4d50"
+dependencies = [
+ "hearthsound-plugin-bindings",
+ "wit-bindgen",
+]
+
+[[package]]
+name = "hearthsound-plugin-metadata-artwork"
+version = "0.2.0"
+source = "git+https://github.com/hearthsound/plugin-sdk?tag=v0.2.0#22cf4743e57e42799a1fc025d224683ea84a4d50"
+dependencies = [
+ "hearthsound-plugin-bindings",
+ "wit-bindgen",
 ]
 
 [[package]]
