@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The plugin builds against the 0.3.0 plugin API
   (`hearthsound:plugin@0.3.0`).
 
+### Fixed
+
+- An id Deezer cannot have issued is answered with not-found instead of a
+  provider error, without a request; Deezer reports such a lookup as an
+  "invalid query" error rather than as "no data".
+- A search or listing asked for a limit of zero returns empty lists instead of
+  everything, which is what Deezer reads `limit=0` as.
+
 ## [0.2.0] - 2026-10-16
 
 ### Added

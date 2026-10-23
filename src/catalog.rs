@@ -19,6 +19,40 @@ const TRACK_PAGE_SIZE: u32 = 100;
 /// response from paging until the call deadline.
 const MAX_ALBUM_TRACKS: usize = 1_000;
 
+/// Returns whether `id` has the shape of a Deezer entity id.
+///
+/// Deezer mints numeric ids only, so any other identifier cannot name a track,
+/// an album or an artist; asking about one earns an "invalid query" error
+/// instead of the not-found it really is.
+///
+/// # Parameters
+///
+/// - `id`: the identifier a caller supplied.
+///
+/// # Returns
+///
+/// `true` when `id` is non-empty and made of ASCII digits only.
+fn is_entity_id(id: &str) -> bool {
+    !id.is_empty() && id.bytes().all(|byte| byte.is_ascii_digit())
+}
+
+/// Refuses an id Deezer cannot have issued, without a request.
+///
+/// # Parameters
+///
+/// - `id`: the identifier a caller supplied.
+///
+/// # Errors
+///
+/// Returns [`ProviderError::NotFound`] when `id` is not numeric.
+fn require_entity_id(id: &str) -> Result<(), ProviderError> {
+    if is_entity_id(id) {
+        Ok(())
+    } else {
+        Err(ProviderError::NotFound)
+    }
+}
+
 /// Searches Deezer's mixed index for tracks.
 ///
 /// # Parameters
@@ -30,17 +64,23 @@ const MAX_ALBUM_TRACKS: usize = 1_000;
 ///
 /// # Returns
 ///
-/// The matching tracks, in Deezer's relevance order.
+/// The matching tracks, in Deezer's relevance order, or an empty list when
+/// `limit` is zero.
 ///
 /// # Errors
 ///
-/// Returns the provider error of the underlying request.
+/// Returns the provider error of the underlying request. A zero limit sends no
+/// request at all, because Deezer reads `limit=0` as "no limit".
 pub(crate) fn search_tracks(
     base_url: &str,
     text: &str,
     limit: u32,
     offset: u32,
 ) -> Result<Vec<Track>, ProviderError> {
+    if limit == 0 {
+        return Ok(Vec::new());
+    }
+
     let page: Page<deezer::Track> =
         api::get(base_url, &search_path("search", text, limit, offset))?;
 
@@ -62,17 +102,23 @@ pub(crate) fn search_tracks(
 ///
 /// # Returns
 ///
-/// The matching album references, in Deezer's relevance order.
+/// The matching album references, in Deezer's relevance order, or an empty
+/// list when `limit` is zero.
 ///
 /// # Errors
 ///
-/// Returns the provider error of the underlying request.
+/// Returns the provider error of the underlying request. A zero limit sends no
+/// request at all, because Deezer reads `limit=0` as "no limit".
 pub(crate) fn search_albums(
     base_url: &str,
     text: &str,
     limit: u32,
     offset: u32,
 ) -> Result<Vec<AlbumRef>, ProviderError> {
+    if limit == 0 {
+        return Ok(Vec::new());
+    }
+
     let page: Page<deezer::Album> =
         api::get(base_url, &search_path("search/album", text, limit, offset))?;
 
@@ -90,17 +136,23 @@ pub(crate) fn search_albums(
 ///
 /// # Returns
 ///
-/// The matching artists, in Deezer's relevance order.
+/// The matching artists, in Deezer's relevance order, or an empty list when
+/// `limit` is zero.
 ///
 /// # Errors
 ///
-/// Returns the provider error of the underlying request.
+/// Returns the provider error of the underlying request. A zero limit sends no
+/// request at all, because Deezer reads `limit=0` as "no limit".
 pub(crate) fn search_artists(
     base_url: &str,
     text: &str,
     limit: u32,
     offset: u32,
 ) -> Result<Vec<Artist>, ProviderError> {
+    if limit == 0 {
+        return Ok(Vec::new());
+    }
+
     let page: Page<deezer::Artist> =
         api::get(base_url, &search_path("search/artist", text, limit, offset))?;
 
@@ -120,8 +172,10 @@ pub(crate) fn search_artists(
 ///
 /// # Errors
 ///
-/// Returns [`ProviderError::NotFound`] when Deezer does not know the id.
+/// Returns [`ProviderError::NotFound`] when Deezer does not know the id, and
+/// for any id that is not numeric.
 pub(crate) fn track(base_url: &str, id: &str) -> Result<Track, ProviderError> {
+    require_entity_id(id)?;
     let source: deezer::Track = api::get(base_url, &element_path("track", id))?;
 
     Ok(map::track(&source, None))
@@ -145,8 +199,10 @@ pub(crate) fn track(base_url: &str, id: &str) -> Result<Track, ProviderError> {
 ///
 /// # Errors
 ///
-/// Returns [`ProviderError::NotFound`] when Deezer does not know the id.
+/// Returns [`ProviderError::NotFound`] when Deezer does not know the id, and
+/// for any id that is not numeric.
 pub(crate) fn album(base_url: &str, id: &str) -> Result<Album, ProviderError> {
+    require_entity_id(id)?;
     let source: deezer::Album = api::get(base_url, &element_path("album", id))?;
     let tracks = album_tracks(base_url, id)?;
 
@@ -166,8 +222,10 @@ pub(crate) fn album(base_url: &str, id: &str) -> Result<Album, ProviderError> {
 ///
 /// # Errors
 ///
-/// Returns [`ProviderError::NotFound`] when Deezer does not know the id.
+/// Returns [`ProviderError::NotFound`] when Deezer does not know the id, and
+/// for any id that is not numeric.
 pub(crate) fn artist(base_url: &str, id: &str) -> Result<Artist, ProviderError> {
+    require_entity_id(id)?;
     let source: deezer::Artist = api::get(base_url, &element_path("artist", id))?;
 
     Ok(map::artist(&source))
@@ -188,17 +246,24 @@ pub(crate) fn artist(base_url: &str, id: &str) -> Result<Artist, ProviderError> 
 ///
 /// # Returns
 ///
-/// The artist's albums.
+/// The artist's albums, or an empty list when `limit` is zero.
 ///
 /// # Errors
 ///
-/// Returns [`ProviderError::NotFound`] when Deezer does not know the id.
+/// Returns [`ProviderError::NotFound`] when Deezer does not know the id, and
+/// for any id that is not numeric. A zero limit sends no request at all,
+/// because Deezer reads `limit=0` as "no limit".
 pub(crate) fn artist_albums(
     base_url: &str,
     id: &str,
     limit: u32,
     offset: u32,
 ) -> Result<Vec<AlbumRef>, ProviderError> {
+    require_entity_id(id)?;
+    if limit == 0 {
+        return Ok(Vec::new());
+    }
+
     let page: Page<deezer::Album> = api::get(
         base_url,
         &listing_path("artist", id, "albums", limit, offset),
@@ -217,17 +282,25 @@ pub(crate) fn artist_albums(
 ///
 /// # Returns
 ///
-/// The artist's top tracks. Deezer reports no ISRC for these, so the tracks
-/// carry the album reference and the other metadata only.
+/// The artist's top tracks, or an empty list when `limit` is zero. Deezer
+/// reports no ISRC for these, so the tracks carry the album reference and the
+/// other metadata only.
 ///
 /// # Errors
 ///
-/// Returns [`ProviderError::NotFound`] when Deezer does not know the id.
+/// Returns [`ProviderError::NotFound`] when Deezer does not know the id, and
+/// for any id that is not numeric. A zero limit sends no request at all,
+/// because Deezer reads `limit=0` as "no limit".
 pub(crate) fn artist_top_tracks(
     base_url: &str,
     id: &str,
     limit: u32,
 ) -> Result<Vec<Track>, ProviderError> {
+    require_entity_id(id)?;
+    if limit == 0 {
+        return Ok(Vec::new());
+    }
+
     let page: Page<deezer::Track> = api::get(
         base_url,
         &format!("{}?limit={limit}", listing("artist", id, "top")),
@@ -467,5 +540,74 @@ mod tests {
         assert_eq!(normalize_isrc(" us qx9 1300105 "), "USQX91300105");
         assert_eq!(normalize_isrc(""), "");
         assert_eq!(normalize_isrc("---"), "");
+    }
+
+    #[test]
+    fn recognizes_entity_ids() {
+        assert!(is_entity_id("0"));
+        assert!(is_entity_id("67238732"));
+        assert!(!is_entity_id(""));
+        assert!(!is_entity_id("abc"));
+        assert!(!is_entity_id("-1"));
+        assert!(!is_entity_id("1.5"));
+        assert!(!is_entity_id(" 1"));
+        assert!(!is_entity_id("hsplugin-conformance-unknown-id"));
+    }
+
+    #[test]
+    fn rejects_ids_deezer_cannot_have_issued() {
+        // No host is bound in a unit test, so reaching the network would fail;
+        // an id that is not numeric is answered before any request is built.
+        let base_url = "https://api.deezer.com";
+        let unknown = "hsplugin-conformance-unknown-id";
+
+        assert!(matches!(
+            track(base_url, unknown),
+            Err(ProviderError::NotFound)
+        ));
+        assert!(matches!(
+            album(base_url, unknown),
+            Err(ProviderError::NotFound)
+        ));
+        assert!(matches!(
+            artist(base_url, unknown),
+            Err(ProviderError::NotFound)
+        ));
+        assert!(matches!(
+            artist_albums(base_url, unknown, 10, 0),
+            Err(ProviderError::NotFound)
+        ));
+        assert!(matches!(
+            artist_top_tracks(base_url, unknown, 10),
+            Err(ProviderError::NotFound)
+        ));
+    }
+
+    #[test]
+    fn answers_a_zero_limit_without_a_request() {
+        // Deezer reads `limit=0` as "no limit", so the empty answer is given
+        // here instead of asking for everything.
+        let base_url = "https://api.deezer.com";
+
+        assert!(matches!(
+            search_tracks(base_url, "hello", 0, 0),
+            Ok(tracks) if tracks.is_empty()
+        ));
+        assert!(matches!(
+            search_albums(base_url, "hello", 0, 0),
+            Ok(albums) if albums.is_empty()
+        ));
+        assert!(matches!(
+            search_artists(base_url, "hello", 0, 0),
+            Ok(artists) if artists.is_empty()
+        ));
+        assert!(matches!(
+            artist_albums(base_url, "27", 0, 0),
+            Ok(albums) if albums.is_empty()
+        ));
+        assert!(matches!(
+            artist_top_tracks(base_url, "27", 0),
+            Ok(tracks) if tracks.is_empty()
+        ));
     }
 }
