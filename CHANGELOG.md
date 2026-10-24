@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Searches stay under Deezer's quota: the declared request rate is below 50
+  requests per 5 seconds, a quota error carried by an HTTP status is reported as
+  rate-limited instead of unavailable (so the server backs off for one quota
+  window), and a forbidden status without a Deezer error body is treated as a
+  refusal to retry after that window.
+
 ## [0.3.0] - 2026-10-23
 
 ### Changed

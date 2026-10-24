@@ -65,9 +65,12 @@ cargo test
 |---|---|---|
 | `baseUrl` | `https://api.deezer.com` | Base URL of the Deezer API. Point it at a mirror or a test double to keep traffic off Deezer. |
 
-The instance requests a `host-http` rate limit of 10 requests per second with a
-burst of 10, which keeps a search fan-out below the 50 requests per 5 seconds
-Deezer publishes.
+The instance requests a `host-http` rate limit of 8 requests per second with a
+burst of 8, which keeps any 5-second window below the 50 requests Deezer
+publishes (the host enforces the limit per instance, so run one instance against
+the public API: two instances share the server's per-IP quota without adding
+capacity). The same limiter paces the image requests the server makes on the
+instance's behalf, because they use the instance's HTTP permission.
 
 ## Notes
 
@@ -94,9 +97,13 @@ Deezer publishes.
   ones the subject names. An artist without a portrait is answered with nothing,
   because Deezer's placeholder URLs serve a flat black square rather than a
   picture.
-- Deezer answers errors with HTTP status 200 and an `error` object. The plugin
-  translates "no data" into a not-found, a quota error into rate-limited, and
-  everything else into an unavailable provider.
+- Deezer answers most errors with HTTP status 200 and an `error` object, and its
+  gateway answers a quota violation with the same body on a forbidden status.
+  The plugin reads the body before the status, so "no data" becomes a not-found
+  and a quota error becomes rate-limited with a 5-second delay (one quota window)
+  whichever status carried it; a bare 403 is also rate-limited, because the only
+  reason the API refuses a request without naming a different failure is that
+  the caller is over the quota. Everything else becomes an unavailable provider.
 
 ## Layout
 

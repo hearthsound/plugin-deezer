@@ -7,7 +7,9 @@
 //!
 //! Deezer reports most failures with HTTP status 200 and an `error` object
 //! rather than an HTTP error status, so a response body is never believed
-//! before it has been inspected.
+//! before it has been inspected. Its API gateway sometimes carries the same
+//! `error` object on an HTTP error status instead (a quota violation arrives
+//! as a forbidden status), so the body is read before the status.
 
 use hearthsound_plugin::host::http;
 use hearthsound_plugin::types::ProviderError;
@@ -27,11 +29,13 @@ const QUOTA_ERROR_CODE: i64 = 4;
 /// "No data" error code of the Deezer API.
 const NO_DATA_ERROR_CODE: i64 = 800;
 
-/// Delay reported with a rate-limited error, in seconds.
+/// Delay reported with a rate-limited error, in milliseconds.
 ///
-/// Deezer does not send a `Retry-After` header, so the plugin reports a fixed
-/// delay the server can spread its retry over.
-const RATE_LIMIT_RETRY_SECS: u32 = 60;
+/// Deezer enforces its 50 requests per 5 seconds as a moving window and sends
+/// no `Retry-After` header, so the plugin reports one window: the next attempt
+/// after that delay falls in a window that is guaranteed to be under the
+/// quota again.
+const RATE_LIMIT_RETRY_MS: u32 = 5_000;
 
 /// Sends a GET request to a Deezer endpoint and decodes the JSON body.
 ///
@@ -67,6 +71,12 @@ pub(crate) fn get<T: DeserializeOwned>(base_url: &str, path: &str) -> Result<T, 
 
 /// Decodes one Deezer response.
 ///
+/// A Deezer error document is read first, whatever HTTP status carried it: the
+/// API gateway answers a request over the quota with a forbidden status and the
+/// same `{"error": {"code": 4}}` body it uses on a successful status, and only
+/// reading the body keeps that quota rejection from becoming an unavailable
+/// instance.
+///
 /// # Parameters
 ///
 /// - `status`: HTTP status of the response.
@@ -80,29 +90,39 @@ pub(crate) fn get<T: DeserializeOwned>(base_url: &str, path: &str) -> Result<T, 
 /// # Errors
 ///
 /// Returns [`ProviderError::NotFound`] for HTTP 404 and for a Deezer "no data"
-/// error, [`ProviderError::RateLimited`] for HTTP 429 and for a Deezer quota
-/// error, [`ProviderError::Unavailable`] for any other non-success status, a
-/// body that is not JSON, or a Deezer error the plugin cannot classify, and
-/// [`ProviderError::Internal`] for JSON of an unexpected shape.
+/// error, [`ProviderError::RateLimited`] for HTTP 403 or 429 and for a Deezer
+/// quota error, [`ProviderError::Unavailable`] for any other non-success
+/// status, a body that is not JSON, or a Deezer error the plugin cannot
+/// classify, and [`ProviderError::Internal`] for JSON of an unexpected shape.
 pub(crate) fn decode<T: DeserializeOwned>(
     status: u16,
     body: &[u8],
     url: &str,
 ) -> Result<T, ProviderError> {
+    let parsed: Option<serde_json::Value> = serde_json::from_slice(body).ok();
+
+    if let Some(error) = parsed
+        .as_ref()
+        .and_then(|value| value.get("error"))
+        .filter(|error| error.is_object())
+    {
+        return Err(api_error(error, url));
+    }
+
     if !(200..300).contains(&status) {
         return Err(match status {
             404 => ProviderError::NotFound,
-            429 => ProviderError::RateLimited(RATE_LIMIT_RETRY_SECS),
+            // Deezer's gateway refuses requests over the quota with a
+            // forbidden status. Without a body naming a different failure the
+            // status is the only evidence that the call was refused rather
+            // than that the entity is missing, so the server is told to come
+            // back after one quota window.
+            403 | 429 => ProviderError::RateLimited(RATE_LIMIT_RETRY_MS),
             _ => ProviderError::Unavailable(format!("{url}: HTTP {status}")),
         });
     }
 
-    let value: serde_json::Value = serde_json::from_slice(body)
-        .map_err(|error| ProviderError::Unavailable(format!("{url}: invalid JSON: {error}")))?;
-
-    if let Some(error) = value.get("error") {
-        return Err(api_error(error, url));
-    }
+    let value = parsed.ok_or_else(|| ProviderError::Unavailable(format!("{url}: invalid JSON")))?;
 
     serde_json::from_value(value)
         .map_err(|error| ProviderError::Internal(format!("{url}: unexpected response: {error}")))
@@ -124,7 +144,7 @@ fn api_error(value: &serde_json::Value, url: &str) -> ProviderError {
 
     match error.code {
         Some(NO_DATA_ERROR_CODE) => ProviderError::NotFound,
-        Some(QUOTA_ERROR_CODE) => ProviderError::RateLimited(RATE_LIMIT_RETRY_SECS),
+        Some(QUOTA_ERROR_CODE) => ProviderError::RateLimited(RATE_LIMIT_RETRY_MS),
         _ if error.kind.as_deref() == Some("DataException") => ProviderError::NotFound,
         _ => {
             let code = error
@@ -206,7 +226,41 @@ mod tests {
         let error: ProviderError =
             decode::<deezer::Track>(200, body, "https://api.deezer.com/track/1").unwrap_err();
 
-        assert!(matches!(error, ProviderError::RateLimited(60)));
+        assert!(matches!(error, ProviderError::RateLimited(5_000)));
+    }
+
+    #[test]
+    fn maps_a_quota_error_carried_by_an_http_status_to_rate_limited() {
+        let body = br#"{"error":{"type":"Exception","message":"Quota limit exceeded","code":4}}"#;
+        for status in [403, 429] {
+            let error: ProviderError =
+                decode::<deezer::Track>(status, body, "https://api.deezer.com/track/1")
+                    .unwrap_err();
+
+            assert!(
+                matches!(error, ProviderError::RateLimited(5_000)),
+                "HTTP {status} answered {error:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn maps_a_forbidden_status_without_a_body_to_rate_limited() {
+        for body in [&b""[..], b"<html>Forbidden</html>"] {
+            let error: ProviderError =
+                decode::<deezer::Track>(403, body, "https://api.deezer.com/track/1").unwrap_err();
+
+            assert!(matches!(error, ProviderError::RateLimited(5_000)));
+        }
+    }
+
+    #[test]
+    fn reads_a_deezer_error_before_the_http_status() {
+        let body = br#"{"error":{"type":"DataException","message":"no data","code":800}}"#;
+        let error: ProviderError =
+            decode::<deezer::Track>(400, body, "https://api.deezer.com/track/1").unwrap_err();
+
+        assert!(matches!(error, ProviderError::NotFound));
     }
 
     #[test]
@@ -233,7 +287,7 @@ mod tests {
         ));
         assert!(matches!(
             decode::<deezer::Track>(429, b"", "u").unwrap_err(),
-            ProviderError::RateLimited(60)
+            ProviderError::RateLimited(5_000)
         ));
         match decode::<deezer::Track>(503, br#"{"error":"unavailable"}"#, "u").unwrap_err() {
             ProviderError::Unavailable(message) => {

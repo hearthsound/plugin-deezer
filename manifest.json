@@ -12,7 +12,7 @@
   "permissions": {
     "http": {
       "hosts": ["api.deezer.com", "*.dzcdn.net", "$config:baseUrl"],
-      "rateLimit": { "perSecond": 10, "burst": 10 }
+      "rateLimit": { "perSecond": 8, "burst": 8 }
     }
   },
   "config": {
