@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "id": "app.hearthsound.deezer",
   "name": "Deezer catalog",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Search and browse the Deezer public API as a catalog provider, and read its album covers and artist portraits, without an account or an API key.",
   "authors": ["Hearthsound contributors"],
   "license": "MIT OR Apache-2.0",

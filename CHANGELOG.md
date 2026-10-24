@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-24
+
 ### Fixed
 
 - Searches stay under Deezer's quota: the declared request rate is below 50
@@ -66,7 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A CI workflow that formats, lints, tests, builds, checks and packs the
   plugin, and uploads the archive.
 
-[Unreleased]: https://github.com/hearthsound/plugin-deezer/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/hearthsound/plugin-deezer/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/hearthsound/plugin-deezer/releases/tag/v0.3.1
 [0.3.0]: https://github.com/hearthsound/plugin-deezer/releases/tag/v0.3.0
 [0.2.0]: https://github.com/hearthsound/plugin-deezer/releases/tag/v0.2.0
 [0.1.1]: https://github.com/hearthsound/plugin-deezer/releases/tag/v0.1.1
