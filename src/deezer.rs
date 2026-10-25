@@ -71,6 +71,10 @@ pub struct Artist {
     /// 1000x1000 picture URL.
     #[serde(default)]
     pub picture_xl: Option<String>,
+    /// The artist's album count as Deezer states it; absent from the responses
+    /// that embed an artist in another object.
+    #[serde(default)]
+    pub nb_album: Option<u32>,
 }
 
 /// A track, as returned by a track endpoint or embedded in another response.

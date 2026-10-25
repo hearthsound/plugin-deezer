@@ -178,10 +178,7 @@ fn covers(base_url: &str, path: &str) -> Result<Vec<Image>, ProviderError> {
 /// One image per real picture URL, smallest first; empty when the artist has no
 /// portrait.
 fn portraits(source: &deezer::Artist) -> Vec<Image> {
-    map::picture_images(source)
-        .into_iter()
-        .filter(|image| !map::is_placeholder_picture(&image.url))
-        .collect()
+    map::artist_images(source)
 }
 
 /// Returns the result of a lookup that may legitimately find nothing.

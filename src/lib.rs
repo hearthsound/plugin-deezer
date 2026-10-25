@@ -285,4 +285,30 @@ mod tests {
         assert!(!wants(&kinds, EntityKind::Album));
         assert!(!wants(&kinds, EntityKind::Playlist));
     }
+
+    #[test]
+    fn keeps_the_request_rate_under_deezers_ceiling() {
+        let manifest: serde_json::Value =
+            serde_json::from_str(include_str!("../manifest.json")).unwrap();
+        let limits = &manifest["permissions"]["http"]["rateLimit"];
+        let per_second = limits["perSecond"].as_u64().unwrap();
+        let burst = limits["burst"].as_u64().unwrap();
+
+        // Deezer publishes 50 requests per 5 s, so at most 10 in any second. The
+        // declared rate plus one burst must stay below that.
+        assert!(
+            per_second + burst <= 10,
+            "{per_second}/s with a burst of {burst} exceeds 10 requests in one second"
+        );
+        assert_eq!(per_second, 4);
+        assert_eq!(burst, 4);
+    }
+
+    #[test]
+    fn declares_the_api_version_it_builds_against() {
+        let manifest: serde_json::Value =
+            serde_json::from_str(include_str!("../manifest.json")).unwrap();
+
+        assert_eq!(manifest["api"], "hearthsound:plugin@0.4.0");
+    }
 }

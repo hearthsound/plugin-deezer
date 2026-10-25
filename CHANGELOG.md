@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-25
+
+### Added
+
+- The artist's album count as Deezer states it is reported on the catalog
+  artist, so a search result can show how many albums the artist has.
+
+### Changed
+
+- Build against the `hearthsound:plugin@0.4.0` API (plugin-sdk v0.4.0).
+- The declared request rate is 4 per second with a burst of 4: at most 8
+  requests in any second and 20 per 5 seconds, half of Deezer's published
+  ceiling of 50 per 5 seconds. The server's limiter then queues a burst of
+  cover fetches instead of reaching Deezer and collecting a 403 with its 5
+  second penalty.
+
+### Fixed
+
+- An artist Deezer has no portrait for is described without images instead of
+  with Deezer's placeholder square, so that square is no longer served as cover
+  art when no artwork source has a real image.
+
 ## [0.3.1] - 2026-10-24
 
 ### Fixed
@@ -68,7 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A CI workflow that formats, lints, tests, builds, checks and packs the
   plugin, and uploads the archive.
 
-[Unreleased]: https://github.com/hearthsound/plugin-deezer/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/hearthsound/plugin-deezer/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/hearthsound/plugin-deezer/releases/tag/v0.4.0
 [0.3.1]: https://github.com/hearthsound/plugin-deezer/releases/tag/v0.3.1
 [0.3.0]: https://github.com/hearthsound/plugin-deezer/releases/tag/v0.3.0
 [0.2.0]: https://github.com/hearthsound/plugin-deezer/releases/tag/v0.2.0

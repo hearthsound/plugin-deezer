@@ -74,18 +74,25 @@ pub fn artist_credits(source: Option<&deezer::Artist>) -> Vec<ArtistCredit> {
 
 /// Converts a Deezer artist into a catalog artist.
 ///
+/// The pictures are filtered, so an artist Deezer has no portrait for is
+/// described without images rather than with Deezer's placeholder square; the
+/// server falls back to another artwork source instead of serving the
+/// placeholder as cover art.
+///
 /// # Parameters
 ///
 /// - `source`: the artist as Deezer returned it.
 ///
 /// # Returns
 ///
-/// The artist with its id, name and pictures.
+/// The artist with its id, name, real pictures and the album count Deezer
+/// states for it.
 pub fn artist(source: &deezer::Artist) -> Artist {
     Artist {
         id: source.id.to_string(),
         name: source.name.clone(),
-        images: picture_images(source),
+        images: artist_images(source),
+        album_count: source.nb_album,
         ids: Vec::new(),
     }
 }
@@ -124,6 +131,28 @@ pub fn picture_images(source: &deezer::Artist) -> Vec<Image> {
         (source.picture_big.as_deref(), SIZE_BIG),
         (source.picture_xl.as_deref(), SIZE_XL),
     ])
+}
+
+/// Returns the pictures of a Deezer artist, Deezer's placeholders left out.
+///
+/// An artist Deezer has no portrait for still gets picture URLs, and those URLs
+/// serve a flat square; [`is_placeholder_picture`] recognises them, and this
+/// filter is the one place that drops them, so a catalog artist and an artwork
+/// lookup describe the same set.
+///
+/// # Parameters
+///
+/// - `source`: the artist as Deezer returned it.
+///
+/// # Returns
+///
+/// One image per real picture URL, smallest first; empty when the artist has no
+/// portrait.
+pub fn artist_images(source: &deezer::Artist) -> Vec<Image> {
+    picture_images(source)
+        .into_iter()
+        .filter(|image| !is_placeholder_picture(&image.url))
+        .collect()
 }
 
 /// Returns whether a picture URL is one of Deezer's placeholders.
@@ -409,6 +438,12 @@ mod tests {
         serde_json::from_str(include_str!("fixtures/artist.json")).unwrap()
     }
 
+    fn search_artist() -> deezer::Artist {
+        let page: deezer::Page<deezer::Artist> =
+            serde_json::from_str(include_str!("fixtures/search_artists.json")).unwrap();
+        page.data[0].clone()
+    }
+
     /// Renders id pairs as tuples, because the generated `IdPair` is not comparable.
     fn id_pairs(pairs: &[IdPair]) -> Vec<(&str, &str)> {
         pairs
@@ -478,6 +513,34 @@ mod tests {
         assert!(artist.ids.is_empty());
         assert_eq!(artist.images.len(), 4);
         assert_eq!(artist.images[1].width, Some(250));
+        assert_eq!(artist.album_count, Some(38));
+    }
+
+    #[test]
+    fn maps_the_album_count_of_a_search_artist() {
+        let artist = artist(&search_artist());
+
+        assert_eq!(artist.id, "27");
+        assert_eq!(artist.album_count, Some(38));
+        assert_eq!(artist.images.len(), 4);
+    }
+
+    #[test]
+    fn a_placeholder_portrait_is_not_an_image() {
+        let source: deezer::Artist =
+            serde_json::from_str(include_str!("fixtures/artist_placeholder.json")).unwrap();
+        let artist = artist(&source);
+
+        assert_eq!(artist.album_count, Some(0));
+        assert!(artist.images.is_empty());
+    }
+
+    #[test]
+    fn an_artist_without_a_stated_album_count_has_none() {
+        let source: deezer::Artist =
+            serde_json::from_str(r#"{"id": 7, "name": "Unknown Artist"}"#).unwrap();
+
+        assert_eq!(artist(&source).album_count, None);
     }
 
     #[test]
