@@ -21,7 +21,7 @@ use hearthsound_plugin::catalog_artwork_provider::exports::hearthsound::plugin::
 use hearthsound_plugin::types::{EntityKind, IdPair, Image, ProviderError};
 
 use crate::deezer;
-use crate::{api, catalog, map, url};
+use crate::{api, catalog, map};
 
 /// Number of search results inspected when a subject carries no provider id.
 ///
@@ -81,9 +81,7 @@ fn album_artwork(base_url: &str, subject: &ArtworkSubject) -> Result<Vec<Image>,
     }
 
     if let Some(upc) = id_value(&subject.ids, "upc") {
-        let path = format!("album/upc:{}", url::encode_component(upc));
-
-        return covers(base_url, &path);
+        return covers(base_url, &catalog::upc_path(upc));
     }
 
     if subject.title.trim().is_empty() {

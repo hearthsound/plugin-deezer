@@ -122,9 +122,18 @@ pub struct Album {
     /// Release date, formatted `YYYY-MM-DD`.
     #[serde(default)]
     pub release_date: Option<String>,
-    /// Deezer's release type, for example `album`, `single` or `ep`.
+    /// Deezer's release type, for example `album`, `single`, `ep` or
+    /// `compile`; only the album endpoints report it.
     #[serde(default)]
     pub record_type: Option<String>,
+    /// Number of tracks Deezer reports for the release; only the album
+    /// endpoints report it.
+    #[serde(default)]
+    pub nb_tracks: Option<u32>,
+    /// Deezer's own note that tells this pressing apart from another release
+    /// of the same album; only some album endpoints report it.
+    #[serde(default)]
+    pub disambiguation: Option<String>,
     /// Main artist; absent from an artist's album listing.
     #[serde(default)]
     pub artist: Option<Artist>,

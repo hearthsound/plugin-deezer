@@ -37,7 +37,9 @@ use hearthsound_plugin::catalog_artwork_provider::exports::hearthsound::plugin::
     Guest as CatalogGuest, SearchQuery, SearchResults,
 };
 use hearthsound_plugin::catalog_artwork_provider::exports::hearthsound::plugin::lifecycle::Guest as LifecycleGuest;
-use hearthsound_plugin::types::{Album, AlbumRef, Artist, EntityKind, Image, ProviderError, Track};
+use hearthsound_plugin::types::{
+    Album, AlbumRef, Artist, EntityKind, IdPair, Image, ProviderError, Track,
+};
 
 mod api;
 mod artwork;
@@ -211,6 +213,10 @@ impl CatalogGuest for DeezerCatalog {
     fn lookup_isrc(isrc: String) -> Result<Vec<Track>, ProviderError> {
         catalog::lookup_isrc(&base_url()?, &isrc)
     }
+
+    fn lookup_album(ids: Vec<IdPair>) -> Result<Vec<AlbumRef>, ProviderError> {
+        catalog::lookup_album(&base_url()?, &ids)
+    }
 }
 
 /// Implements the artwork interface.
@@ -309,6 +315,6 @@ mod tests {
         let manifest: serde_json::Value =
             serde_json::from_str(include_str!("../manifest.json")).unwrap();
 
-        assert_eq!(manifest["api"], "hearthsound:plugin@0.4.0");
+        assert_eq!(manifest["api"], "hearthsound:plugin@0.5.0");
     }
 }

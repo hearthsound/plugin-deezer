@@ -5,13 +5,16 @@
 //! interesting logic is the URL building, which is tested here directly, and
 //! the translation, which is tested in [`crate::map`].
 
-use hearthsound_plugin::types::{Album, AlbumRef, Artist, ProviderError, Track};
+use hearthsound_plugin::types::{Album, AlbumRef, Artist, IdPair, ProviderError, Track};
 
 use crate::deezer::{self, Page};
 use crate::{api, map, url};
 
 /// Number of album tracks requested per page.
 const TRACK_PAGE_SIZE: u32 = 100;
+
+/// The canonical id namespace Deezer can resolve an album from.
+const UPC_NAMESPACE: &str = "upc";
 
 /// Upper bound on the tracks read for one album.
 ///
@@ -342,6 +345,62 @@ pub(crate) fn lookup_isrc(base_url: &str, isrc: &str) -> Result<Vec<Track>, Prov
     Ok(vec![map::track(&source, None)])
 }
 
+/// Resolves the canonical album ids this provider knows to its album refs.
+///
+/// Deezer issues no MusicBrainz identifiers, so only the `upc` namespace can
+/// match; every other namespace is skipped without a request.
+///
+/// # Parameters
+///
+/// - `base_url`: base URL of the API.
+/// - `ids`: the canonical ids to look up.
+///
+/// # Returns
+///
+/// One reference per `upc` id Deezer knows, in the order the ids were given.
+/// Empty when none of them names an album Deezer holds, including when a UPC
+/// matches no album.
+///
+/// # Errors
+///
+/// Returns the provider error of a request that could not be made. A UPC that
+/// matches no album is not an error: the lookup answers whatever it did find.
+pub(crate) fn lookup_album(base_url: &str, ids: &[IdPair]) -> Result<Vec<AlbumRef>, ProviderError> {
+    let mut albums = Vec::new();
+
+    for pair in ids.iter().filter(|pair| pair.namespace == UPC_NAMESPACE) {
+        let upc = pair.value.trim();
+        if upc.is_empty() {
+            continue;
+        }
+
+        let source: deezer::Album = match api::get(base_url, &upc_path(upc)) {
+            Ok(source) => source,
+            // Deezer answers an unknown UPC with "no data"; a lookup asks
+            // about every id it was given, so one miss is not a failure.
+            Err(ProviderError::NotFound) => continue,
+            Err(error) => return Err(error),
+        };
+
+        albums.push(map::album_ref(&source));
+    }
+
+    Ok(albums)
+}
+
+/// Builds the path of the album endpoint addressing an album by UPC.
+///
+/// # Parameters
+///
+/// - `upc`: Universal Product Code of the album.
+///
+/// # Returns
+///
+/// `album/upc:<encoded upc>`.
+pub(crate) fn upc_path(upc: &str) -> String {
+    format!("album/upc:{}", url::encode_component(upc))
+}
+
 /// Checks that the API answers.
 ///
 /// The genre list is the cheapest endpoint that proves the base URL is a
@@ -581,6 +640,36 @@ mod tests {
             artist_top_tracks(base_url, unknown, 10),
             Err(ProviderError::NotFound)
         ));
+    }
+
+    #[test]
+    fn builds_upc_paths() {
+        assert_eq!(upc_path("886443927087"), "album/upc:886443927087");
+        assert_eq!(upc_path("0886443927087"), "album/upc:0886443927087");
+        // A UPC can never add a path segment or a query parameter.
+        assert_eq!(upc_path("1/2?x=1"), "album/upc:1%2F2%3Fx%3D1");
+    }
+
+    #[test]
+    fn looks_up_only_the_upc_namespace() {
+        // No host is bound in a unit test, so a lookup is exercised only with
+        // the ids that send no request: no ids at all, other namespaces and a
+        // blank UPC.
+        let base_url = "https://api.deezer.com";
+        let pair = |namespace: &str, value: &str| IdPair {
+            namespace: namespace.to_string(),
+            value: value.to_string(),
+        };
+
+        assert!(lookup_album(base_url, &[]).unwrap().is_empty());
+
+        let ids = [
+            pair("mb-release", "f8b3c5b6-0000-0000-0000-000000000000"),
+            pair("mb-release-group", "f8b3c5b6-0000-0000-0000-000000000001"),
+            pair("upc", "   "),
+        ];
+
+        assert!(lookup_album(base_url, &ids).unwrap().is_empty());
     }
 
     #[test]

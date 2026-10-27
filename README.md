@@ -4,8 +4,8 @@ A [Hearthsound](https://github.com/hearthsound) catalog plugin backed by the
 [Deezer public API](https://developers.deezer.com/api). It compiles to a
 WebAssembly component that implements the `catalog` and `artwork` provider
 interfaces, so a Hearthsound server can search Deezer, browse Deezer tracks,
-albums and artists, resolve ISRCs to tracks, and use Deezer covers and artist
-portraits for its artwork layer.
+albums and artists, resolve ISRCs and UPCs to what Deezer holds, and use Deezer
+covers and artist portraits for its artwork layer.
 
 The plugin needs no Deezer account and no API key: every endpoint it calls is
 part of the public, unauthenticated API.
@@ -29,7 +29,7 @@ The component lands at
 Install the plugin CLI from the SDK repository:
 
 ```console
-cargo install --locked --git https://github.com/hearthsound/plugin-sdk --tag v0.4.0 hearthsound-plugin-cli
+cargo install --locked --git https://github.com/hearthsound/plugin-sdk --tag v0.5.0 hearthsound-plugin-cli
 ```
 
 Then validate the manifest and the component:
@@ -38,7 +38,7 @@ Then validate the manifest and the component:
 hsplugin check
 ```
 
-It prints `ok: app.hearthsound.deezer 0.4.0 (provides catalog, artwork)` on
+It prints `ok: app.hearthsound.deezer 0.5.0 (provides catalog, artwork)` on
 success.
 
 Finally, build the archive you install on a server:
@@ -47,7 +47,7 @@ Finally, build the archive you install on a server:
 hsplugin pack --out-dir dist
 ```
 
-`dist/app.hearthsound.deezer-0.4.0.hsplugin` contains the manifest and the
+`dist/app.hearthsound.deezer-0.5.0.hsplugin` contains the manifest and the
 component.
 
 ## Tests
@@ -74,9 +74,9 @@ instance's behalf, because they use the instance's HTTP permission.
 
 ## Notes
 
-- Deezer's terms forbid caching its images, so the manifest declares
-  `catalog.imageCachePolicy: "no-store"` and the server forwards proxied
-  artwork without storing it.
+- The plugin declares no image cache policy: the manifest of the 0.5.0 API has
+  no `catalog` block, and the server stores and serves every image it fetches.
+  Whether storing Deezer's covers is acceptable is the operator's decision.
 - Images come from `cdn-images.dzcdn.net`; the manifest allowlists
   `*.dzcdn.net` for them.
 - Deezer issues its own ids, so the plugin reports them as the entity ids and
@@ -91,6 +91,10 @@ instance's behalf, because they use the instance's HTTP permission.
   returns have no artist credits; every other response reports the artist.
 - ISRCs are normalized before a lookup (hyphens and spaces removed, upper-cased)
   because Deezer answers a hyphenated code with "no data".
+- Albums are resolved from canonical ids by UPC only, through
+  `/album/upc:{upc}`: Deezer issues no MusicBrainz identifiers, so every other
+  namespace is skipped, and a UPC Deezer does not know is left out of the
+  answer instead of failing the lookup.
 - The artwork interface answers a subject from its own id when the server holds
   one, otherwise from the album's UPC, otherwise from Deezer's advanced search;
   a search result counts only when its title, and the artist it credits, are the

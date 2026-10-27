@@ -2,12 +2,12 @@
   "manifestVersion": 1,
   "id": "app.hearthsound.deezer",
   "name": "Deezer catalog",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Search and browse the Deezer public API as a catalog provider, and read its album covers and artist portraits, without an account or an API key.",
   "authors": ["Hearthsound contributors"],
   "license": "MIT OR Apache-2.0",
   "homepage": "https://github.com/hearthsound/plugin-deezer",
-  "api": "hearthsound:plugin@0.4.0",
+  "api": "hearthsound:plugin@0.5.0",
   "provides": ["catalog", "artwork"],
   "permissions": {
     "http": {
@@ -37,6 +37,5 @@
     },
     "user": null
   },
-  "resources": { "memoryMb": 64, "callTimeoutMs": 15000, "maxInstances": 2 },
-  "catalog": { "imageCachePolicy": "no-store" }
+  "resources": { "memoryMb": 64, "callTimeoutMs": 15000, "maxInstances": 2 }
 }

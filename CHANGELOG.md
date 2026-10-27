@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-27
+
+### Added
+
+- Album lookup by canonical id: `lookup-album` answers a UPC through
+  `/album/upc:{upc}` and skips every namespace Deezer cannot resolve, so a
+  server holding a UPC finds the Deezer album for it. A UPC Deezer does not
+  know is left out of the answer rather than reported as a failure.
+- Album references state Deezer's release type and track count, so a
+  discography entry can show that an album is a compilation and how many tracks
+  it has.
+
+### Changed
+
+- Build against the `hearthsound:plugin@0.5.0` API (plugin-sdk v0.5.0).
+- Deezer's `compile` release type is reported as `compilation`, and every other
+  release type is lower-cased, as the catalog's album type asks.
+- The manifest carries no `catalog` block, because the 0.5.0 API has none.
+
 ## [0.4.0] - 2026-10-25
 
 ### Added
@@ -90,7 +109,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A CI workflow that formats, lints, tests, builds, checks and packs the
   plugin, and uploads the archive.
 
-[Unreleased]: https://github.com/hearthsound/plugin-deezer/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/hearthsound/plugin-deezer/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/hearthsound/plugin-deezer/releases/tag/v0.5.0
 [0.4.0]: https://github.com/hearthsound/plugin-deezer/releases/tag/v0.4.0
 [0.3.1]: https://github.com/hearthsound/plugin-deezer/releases/tag/v0.3.1
 [0.3.0]: https://github.com/hearthsound/plugin-deezer/releases/tag/v0.3.0

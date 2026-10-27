@@ -190,7 +190,9 @@ pub fn is_placeholder_picture(url: &str) -> bool {
 ///
 /// # Returns
 ///
-/// The album's id, title, artists, release year and covers.
+/// The album's id, title, artists, release year, covers, its release type and
+/// track count when the response carried them, its disambiguation as the
+/// edition, and its UPC as an id pair.
 pub fn album_ref(source: &deezer::Album) -> AlbumRef {
     AlbumRef {
         id: source.id.to_string(),
@@ -198,6 +200,10 @@ pub fn album_ref(source: &deezer::Album) -> AlbumRef {
         artists: artist_credits(source.artist.as_ref()),
         year: year(source.release_date.as_deref()),
         images: cover_images(source),
+        album_type: album_type(source.record_type.as_deref()),
+        edition: non_empty(source.disambiguation.as_deref()),
+        track_count: source.nb_tracks,
+        ids: album_ids(source),
     }
 }
 
@@ -224,12 +230,13 @@ pub fn album(source: &deezer::Album, tracks: &[deezer::Track]) -> Album {
         title: reference.title,
         artists: reference.artists,
         release_date: source.release_date.clone(),
-        album_type: source.record_type.clone(),
+        album_type: reference.album_type,
         upc: non_empty(source.upc.as_deref()),
         genres: genres(source),
         images: reference.images,
         tracks: album_tracks,
         ids: album_ids(source),
+        edition: non_empty(source.disambiguation.as_deref()),
     }
 }
 
@@ -334,6 +341,38 @@ pub fn album_ids(source: &deezer::Album) -> Vec<IdPair> {
 /// ```
 pub fn year(release_date: Option<&str>) -> Option<u16> {
     release_date?.get(0..4)?.parse().ok()
+}
+
+/// Normalizes Deezer's release type to the catalog's album type.
+///
+/// Deezer types a compilation as `compile`; every other type it reports
+/// (`album`, `ep`, `single`, ...) is already the catalog's word, so the value
+/// is lower-cased and passed through.
+///
+/// # Parameters
+///
+/// - `record_type`: the release type as Deezer reported it.
+///
+/// # Returns
+///
+/// The lower-cased release type, with `compile` spelled `compilation`, or
+/// `None` when the response carried no type or a blank one.
+///
+/// # Example
+///
+/// ```text
+/// album_type(Some("album"))   -> Some("album")
+/// album_type(Some("compile")) -> Some("compilation")
+/// album_type(None)            -> None
+/// ```
+pub fn album_type(record_type: Option<&str>) -> Option<String> {
+    let record_type = non_empty(record_type)?.to_ascii_lowercase();
+
+    if record_type == "compile" {
+        Some("compilation".to_string())
+    } else {
+        Some(record_type)
+    }
 }
 
 /// Builds an id pair list holding one value.
@@ -474,6 +513,12 @@ mod tests {
         assert_eq!(album.images.len(), 4);
         assert_eq!(album.images[0].width, Some(56));
         assert_eq!(album.images[3].width, Some(1000));
+        // The album embedded in a search result states neither its type nor
+        // its track count, and carries no canonical id.
+        assert_eq!(album.album_type, None);
+        assert_eq!(album.track_count, None);
+        assert_eq!(album.edition, None);
+        assert!(album.ids.is_empty());
     }
 
     #[test]
@@ -485,6 +530,7 @@ mod tests {
         assert_eq!(album.release_date.as_deref(), Some("2013-05-17"));
         assert_eq!(album.album_type.as_deref(), Some("album"));
         assert_eq!(album.upc.as_deref(), Some("886443927087"));
+        assert_eq!(album.edition, None);
         assert_eq!(album.genres, vec!["Dance".to_string(), "Pop".to_string()]);
         assert_eq!(id_pairs(&album.ids), vec![("upc", "886443927087")]);
         assert_eq!(album.artists.len(), 1);
@@ -502,6 +548,10 @@ mod tests {
         assert_eq!(referenced.id, "6575789");
         assert_eq!(referenced.title, "Random Access Memories");
         assert_eq!(referenced.year, Some(2013));
+        assert_eq!(referenced.album_type.as_deref(), Some("album"));
+        assert_eq!(referenced.track_count, Some(13));
+        assert_eq!(referenced.edition, None);
+        assert_eq!(id_pairs(&referenced.ids), vec![("upc", "886443927087")]);
     }
 
     #[test]
@@ -584,6 +634,53 @@ mod tests {
         // Deezer's artist album listing carries no album artist.
         assert!(album.artists.is_empty());
         assert_eq!(album.images.len(), 4);
+        assert_eq!(album.album_type.as_deref(), Some("album"));
+        // The listing states no track count and no UPC.
+        assert_eq!(album.track_count, None);
+        assert!(album.ids.is_empty());
+    }
+
+    #[test]
+    fn maps_a_upc_lookup_response() {
+        let source: deezer::Album =
+            serde_json::from_str(include_str!("fixtures/album_upc.json")).unwrap();
+
+        let album = album_ref(&source);
+
+        assert_eq!(album.id, "6575789");
+        assert_eq!(album.title, "Random Access Memories");
+        assert_eq!(album.year, Some(2013));
+        assert_eq!(album.album_type.as_deref(), Some("album"));
+        assert_eq!(album.track_count, Some(13));
+        assert_eq!(album.edition, None);
+        assert_eq!(id_pairs(&album.ids), vec![("upc", "886443927087")]);
+        assert_eq!(album.artists.len(), 1);
+        assert_eq!(id_pairs(&album.artists[0].ids), vec![("deezer", "27")]);
+        assert_eq!(album.images.len(), 4);
+    }
+
+    #[test]
+    fn takes_the_edition_from_a_disambiguation() {
+        let source: deezer::Album = serde_json::from_str(
+            r#"{"id": 7, "title": "Remix", "disambiguation": "  Deluxe Edition  "}"#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            album_ref(&source).edition.as_deref(),
+            Some("Deluxe Edition")
+        );
+    }
+
+    #[test]
+    fn maps_deezers_release_types() {
+        assert_eq!(album_type(Some("album")).as_deref(), Some("album"));
+        assert_eq!(album_type(Some("ep")).as_deref(), Some("ep"));
+        assert_eq!(album_type(Some("single")).as_deref(), Some("single"));
+        assert_eq!(album_type(Some("compile")).as_deref(), Some("compilation"));
+        assert_eq!(album_type(Some("EP")).as_deref(), Some("ep"));
+        assert_eq!(album_type(Some("   ")), None);
+        assert_eq!(album_type(None), None);
     }
 
     #[test]
